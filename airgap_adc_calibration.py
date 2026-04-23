@@ -202,9 +202,10 @@ def fit_min_distribution_for_file(data_dir: str, filename: str, bins: int, ref_m
 
 def _format_energy_tick_label(airgap_value: float, energy_data: Dict[float, tuple[float, float]]) -> str:
     if airgap_value in energy_data:
-        energy_ev = energy_data[airgap_value][0]
+        energy_ev, sigma_ev = energy_data[airgap_value]
         energy_mev = energy_ev / 1_000_000.0
-        return f"{energy_mev:.3f}"
+        sigma_mev = sigma_ev / 1_000_000.0
+        return f"{energy_mev:.3f}±{sigma_mev:.3f}"
     return ""
 
 
@@ -217,9 +218,18 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
     results_sorted = sorted(results, key=lambda r: r.airgap_mm, reverse=True)
     airgaps = np.array([r.airgap_mm for r in results_sorted])
     mus = np.array([abs(r.mu_adc) for r in results_sorted])
+    sigma_adcs = np.array([abs(r.sigma_adc) for r in results_sorted])
 
     fig, ax = plt.subplots(figsize=(10, 5.5))
-    ax.plot(airgaps, mus, "o-", lw=1.8)
+    ax.errorbar(
+        airgaps,
+        mus,
+        yerr=sigma_adcs,
+        fmt="o-",
+        lw=1.8,
+        capsize=3,
+        label="μ ± σ_ADC",
+    )
     ax.set_xlabel("Airgap (mm)")
     ax.set_ylabel("μ du fit gaussien (ADC)")
     ax.set_title("μ(ADC) en fonction de l'airgap")
@@ -229,7 +239,7 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
     # Axe secondaire au-dessus: énergie correspondante en MeV pour chaque airgap
     top_ax = ax.twiny()
     top_ax.set_xlim(ax.get_xlim())
-    top_ax.set_xlabel("Énergie correspondante (MeV)")
+    top_ax.set_xlabel("Énergie correspondante (MeV) [valeur±σ_E]")
     top_ax.set_xticks(airgaps)
     top_ax.set_xticklabels([_format_energy_tick_label(a, energy_data) for a in airgaps], rotation=45, ha="left")
 
@@ -238,6 +248,7 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
     if not has_energy_labels:
         print("Aucune énergie de référence trouvée pour les airgaps affichés (axe du haut vide).")
 
+    ax.legend(loc="best")
     fig.tight_layout()
     plt.show(block=True)
 
