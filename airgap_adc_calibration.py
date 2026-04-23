@@ -194,7 +194,7 @@ def fit_min_distribution_for_file(data_dir: str, filename: str, bins: int, ref_m
     return FitResult(
         filename=filename,
         airgap_mm=airgap_mm,
-        mu_adc=float(fit_params[1]),
+        mu_adc=abs(float(fit_params[1])),
         sigma_adc=abs(float(fit_params[2])),
         amplitude=float(fit_params[0]),
     )
@@ -213,9 +213,10 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
         print("Aucun résultat de fit à tracer.")
         return
 
-    results_sorted = sorted(results, key=lambda r: r.airgap_mm)
+    # Tri décroissant pour afficher l'axe airgap de 40 vers 30 mm
+    results_sorted = sorted(results, key=lambda r: r.airgap_mm, reverse=True)
     airgaps = np.array([r.airgap_mm for r in results_sorted])
-    mus = np.array([r.mu_adc for r in results_sorted])
+    mus = np.array([abs(r.mu_adc) for r in results_sorted])
 
     fig, ax = plt.subplots(figsize=(10, 5.5))
     ax.plot(airgaps, mus, "o-", lw=1.8)
@@ -223,6 +224,7 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
     ax.set_ylabel("μ du fit gaussien (ADC)")
     ax.set_title("μ(ADC) en fonction de l'airgap")
     ax.grid(True, alpha=0.35)
+    ax.set_xlim(40, 30)
 
     # Axe secondaire au-dessus: énergie correspondante en keV pour chaque airgap
     top_ax = ax.twiny()
@@ -252,7 +254,7 @@ def plot_energy_vs_adc(results: List[FitResult], energy_data: Dict[float, tuple[
     for res in results:
         if res.airgap_mm in energy_data:
             energy, sigma_e = energy_data[res.airgap_mm]
-            adc_vals.append(res.mu_adc)
+            adc_vals.append(abs(res.mu_adc))
             ene_vals.append(energy)
             ene_err.append(sigma_e)
 
