@@ -248,6 +248,7 @@ def plot_energy_vs_adc(results: List[FitResult], energy_data: Dict[float, tuple[
         return
 
     adc_vals = []
+    adc_sigma_vals = []
     ene_vals = []
     ene_err = []
 
@@ -255,6 +256,7 @@ def plot_energy_vs_adc(results: List[FitResult], energy_data: Dict[float, tuple[
         if res.airgap_mm in energy_data:
             energy, sigma_e = energy_data[res.airgap_mm]
             adc_vals.append(abs(res.mu_adc))
+            adc_sigma_vals.append(abs(res.sigma_adc))
             ene_vals.append(energy)
             ene_err.append(sigma_e)
 
@@ -263,6 +265,7 @@ def plot_energy_vs_adc(results: List[FitResult], energy_data: Dict[float, tuple[
         return
 
     adc_vals = np.asarray(adc_vals)
+    adc_sigma_vals = np.asarray(adc_sigma_vals)
     ene_vals = np.asarray(ene_vals)
     ene_err = np.asarray(ene_err)
 
@@ -272,11 +275,27 @@ def plot_energy_vs_adc(results: List[FitResult], energy_data: Dict[float, tuple[
     adc_line = np.linspace(np.min(adc_vals), np.max(adc_vals), 200)
 
     plt.figure(figsize=(8, 5))
-    plt.errorbar(adc_vals, ene_vals, yerr=ene_err, fmt="o", capsize=3, label="Points de calibration")
+    plt.errorbar(
+        adc_vals,
+        ene_vals,
+        xerr=adc_sigma_vals,
+        yerr=ene_err,
+        fmt="o",
+        capsize=3,
+        label="Points (barres d'erreur: σ_ADC et σ_E)",
+    )
     plt.plot(adc_line, poly(adc_line), "--", label=f"Fit linéaire: E={coeff[0]:.3f}*ADC+{coeff[1]:.3f}")
     plt.xlabel("ADC (μ du fit gaussien)")
     plt.ylabel("Énergie")
     plt.title("Calibration énergie en fonction de l'ADC")
+    plt.text(
+        0.02,
+        0.02,
+        f"⟨σ_ADC⟩ = {np.mean(adc_sigma_vals):.2f}\\n⟨σ_E⟩ = {np.mean(ene_err):.1f} eV",
+        transform=plt.gca().transAxes,
+        fontsize=9,
+        bbox=dict(facecolor="white", alpha=0.75, edgecolor="gray"),
+    )
     plt.grid(True, alpha=0.35)
     plt.legend()
     plt.tight_layout()
