@@ -200,7 +200,15 @@ def fit_min_distribution_for_file(data_dir: str, filename: str, bins: int, ref_m
     )
 
 
-def plot_mu_vs_airgap(results: List[FitResult]):
+def _format_energy_tick_label(airgap_value: float, energy_data: Dict[float, tuple[float, float]]) -> str:
+    if airgap_value in energy_data:
+        energy_ev = energy_data[airgap_value][0]
+        energy_kev = energy_ev / 1000.0
+        return f"{energy_kev:.1f}"
+    return ""
+
+
+def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[float, float]]):
     if not results:
         print("Aucun résultat de fit à tracer.")
         return
@@ -209,13 +217,26 @@ def plot_mu_vs_airgap(results: List[FitResult]):
     airgaps = np.array([r.airgap_mm for r in results_sorted])
     mus = np.array([r.mu_adc for r in results_sorted])
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(airgaps, mus, "o-", lw=1.8)
-    plt.xlabel("Airgap (mm)")
-    plt.ylabel("μ du fit gaussien (ADC)")
-    plt.title("μ(ADC) en fonction de l'airgap")
-    plt.grid(True, alpha=0.35)
-    plt.tight_layout()
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    ax.plot(airgaps, mus, "o-", lw=1.8)
+    ax.set_xlabel("Airgap (mm)")
+    ax.set_ylabel("μ du fit gaussien (ADC)")
+    ax.set_title("μ(ADC) en fonction de l'airgap")
+    ax.grid(True, alpha=0.35)
+
+    # Axe secondaire au-dessus: énergie correspondante en keV pour chaque airgap
+    top_ax = ax.twiny()
+    top_ax.set_xlim(ax.get_xlim())
+    top_ax.set_xlabel("Énergie correspondante (keV)")
+    top_ax.set_xticks(airgaps)
+    top_ax.set_xticklabels([_format_energy_tick_label(a, energy_data) for a in airgaps], rotation=45, ha="left")
+
+    # Message utile si aucun mapping airgap->énergie n'est trouvé
+    has_energy_labels = any(a in energy_data for a in airgaps)
+    if not has_energy_labels:
+        print("Aucune énergie de référence trouvée pour les airgaps affichés (axe du haut vide).")
+
+    fig.tight_layout()
     plt.show(block=True)
 
 
@@ -300,7 +321,7 @@ def main():
     for r in sorted(results, key=lambda it: it.airgap_mm):
         print(f"airgap={r.airgap_mm:.2f} mm | mu={r.mu_adc:.3f} ADC | sigma={r.sigma_adc:.3f} | {r.filename}")
 
-    plot_mu_vs_airgap(results)
+    plot_mu_vs_airgap(results, DEFAULT_ENERGY_DATA)
     plot_energy_vs_adc(results, DEFAULT_ENERGY_DATA)
 
 
