@@ -203,8 +203,8 @@ def fit_min_distribution_for_file(data_dir: str, filename: str, bins: int, ref_m
 def _format_energy_tick_label(airgap_value: float, energy_data: Dict[float, tuple[float, float]]) -> str:
     if airgap_value in energy_data:
         energy_ev = energy_data[airgap_value][0]
-        energy_kev = energy_ev / 1000.0
-        return f"{energy_kev:.1f}"
+        energy_mev = energy_ev / 1_000_000.0
+        return f"{energy_mev:.3f}"
     return ""
 
 
@@ -226,10 +226,10 @@ def plot_mu_vs_airgap(results: List[FitResult], energy_data: Dict[float, tuple[f
     ax.grid(True, alpha=0.35)
     ax.set_xlim(40, 30)
 
-    # Axe secondaire au-dessus: énergie correspondante en keV pour chaque airgap
+    # Axe secondaire au-dessus: énergie correspondante en MeV pour chaque airgap
     top_ax = ax.twiny()
     top_ax.set_xlim(ax.get_xlim())
-    top_ax.set_xlabel("Énergie correspondante (keV)")
+    top_ax.set_xlabel("Énergie correspondante (MeV)")
     top_ax.set_xticks(airgaps)
     top_ax.set_xticklabels([_format_energy_tick_label(a, energy_data) for a in airgaps], rotation=45, ha="left")
 
